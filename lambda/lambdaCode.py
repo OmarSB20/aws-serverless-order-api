@@ -10,7 +10,7 @@ patch_all()
 
 TABLE_NAME = os.environ["TABLE_NAME"]
 
-eventbridge = boto3.client('eventbridge')
+eventbridge = boto3.client('events')
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(TABLE_NAME)
