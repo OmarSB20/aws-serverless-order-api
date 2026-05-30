@@ -1,0 +1,40 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# Lambda packaging
+lambda.zip
+*.dist-info/
+aws_xray_sdk/
+botocore/
+urllib3/
+dateutil/
+jmespath/
+wrapt/
+wrapt-stubs/
+six.py
+jp.py
+event.json
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
