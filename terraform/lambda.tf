@@ -15,7 +15,8 @@ resource "aws_lambda_function" "python_lambda" {
 
   environment {
     variables = {
-        TABLE_NAME = aws_dynamodb_table.customer_orders_table.name
+        ORDERS_TABLE_NAME = aws_dynamodb_table.customer_orders_table.name
+        CUSTOMERS_TABLE_NAME = aws_dynamodb_table.customers_table.name
     }
   }
 }

@@ -39,7 +39,8 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "dynamodb:PutItem",
           "dynamodb:Query"
         ]
-        Resource = aws_dynamodb_table.customer_orders_table.arn
+        Resource = [aws_dynamodb_table.customer_orders_table.arn,
+                    aws_dynamodb_table.customers_table.arn]
       },
       {
         Effect = "Allow"

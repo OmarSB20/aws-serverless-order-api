@@ -8,12 +8,14 @@ from aws_xray_sdk.core import patch_all
 
 patch_all()
 
-TABLE_NAME = os.environ["TABLE_NAME"]
+ORDERS_TABLE_NAME = os.environ["ORDERS_TABLE_NAME"]
+CUSTOMERS_TABLE_NAME = os.environ["CUSTOMERS_TABLE_NAME"]
 
 eventbridge = boto3.client('events')
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(TABLE_NAME)
+ordersTable = dynamodb.Table(ORDERS_TABLE_NAME)
+customersTable = dynamodb.Table(CUSTOMERS_TABLE_NAME)
 
 def lambda_handler(event, context):
 
@@ -33,7 +35,7 @@ def lambda_handler(event, context):
 
         filtered_items = filter_items(items)
 
-        response = send_eventbridge(filtered_items, customer_id)
+        send_eventbridge(filtered_items, customer_id)
 
         return {
             "statusCode": 200,
@@ -51,32 +53,43 @@ def lambda_handler(event, context):
         }
 
 @xray_recorder.capture("query_dynamo")
-def query_dynamo(customer_id: str) -> list:
+def query_dynamo(customer_id: str) -> dict:
 
     try:
-        response = table.query(
+        ordersResponse = ordersTable.query(
             KeyConditionExpression=Key('CustomerId').eq(customer_id)
         )
 
-        return response['Items']
+        customerResponse = customersTable.get_item(
+            Key={'CustomerId':customer_id}
+        )
+
+        customer = customerResponse['Item']
+
+        return {
+           "Name": customer["Name"],
+           "LastName": customer["LastName"],
+           "Orders": ordersResponse["Items"]
+        }
     except Exception as e:
         print(f"DynamoDB error: {e}")
         raise
 
 @xray_recorder.capture("filter_items")
-def filter_items(items: list) -> list:
+def filter_items(item: dict) -> dict:
 
-    result = []
-
-    for item in items:
-
-        if item["State"] == "PENDING":
-            result.append(item["OrderId"])
-
-    return result
+    return {
+        "Name": item["Name"],
+        "LastName": item["LastName"],
+        "Orders": [
+            order
+            for order in item["Orders"]
+            if order["State"] == "PENDING"
+        ]
+    }
 
 @xray_recorder.capture("send_eventbridge")
-def send_eventbridge(pending_orders: list, customer_id: str):
+def send_eventbridge(pending_orders: dict, customer_id: str):
     try:
             response = eventbridge.put_events(
                 Entries=[
@@ -86,7 +99,9 @@ def send_eventbridge(pending_orders: list, customer_id: str):
                         "DetailType": "OrderPendingDetected",
                         "Detail": json.dumps({
                             "customerId": customer_id,
-                            "orderId": pending_orders
+                            "name": pending_orders["Name"],
+                            "lastName": pending_orders["LastName"] ,
+                            "ordersId": pending_orders["Orders"]
                         })
                     }
                 ]
